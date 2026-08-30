@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kumon Desk">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Kumon Desk</title>
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --surface:#F5F5F7;
+    --surface-2:#EFEFF2;
+    --blue:#005BBB;
+    --blue-press:#00499B;
+    --text:#1D1D1F;
+    --text-2:#6E6E73;
+    --text-3:#A1A1A6;
+    --green:#34C759;
+    --radius-lg:24px;
+    --radius-md:20px;
+    --radius-sm:14px;
+    --shadow-sm:0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:0 8px 24px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
+    --ease:cubic-bezier(0.22,1,0.36,1);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:#E9E9EC;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    overflow:hidden;
+  }
+  #device{
+    position:relative;
+    width:100%;
+    max-width:1180px;
+    aspect-ratio:4/3;
+    background:var(--bg);
+    border-radius:34px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.28);
+    overflow:hidden;
+  }
+  @media (max-width:1180px){
+    #device{ max-width:100vw; aspect-ratio:auto; height:100vh; border-radius:0; }
+  }
+
+  .screen{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    background:var(--bg);
+    transition:transform .5s var(--ease), opacity .4s var(--ease);
+  }
+  .screen.hidden{ pointer-events:none; }
+
+  /* ---- transitions ---- */
+  #screen-home{ z-index:1; }
+  #screen-home.slide-out-left{ transform:translateX(-6%) scale(.98); opacity:0; }
+  #screen-details{ z-index:2; transform:translateX(100%); }
+  #screen-details.active{ transform:translateX(0); }
+  #screen-success{ z-index:3; opacity:0; transform:scale(1.02); pointer-events:none; }
+  #screen-success.active{ opacity:1; transform:scale(1); pointer-events:auto; }
+
+  /* ---- top sync pill ---- */
+  .sync-pill{
+    position:absolute; top:22px; right:28px;
+    display:flex; align-items:center; gap:7px;
+    background:var(--surface);
+    padding:7px 13px 7px 10px;
+    border-radius:999px;
+    font-size:12.5px; font-weight:600; color:var(--text-2);
+    letter-spacing:.01em;
+  }
+  .sync-dot{ width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 2.2s ease-in-out infinite; }
+  .sync-dot.online{ background:var(--green); }
+  .sync-dot.offline{ background:var(--text-3); animation:none; }
+  .sync-dot.error{ background:#FF3B30; }
+  @keyframes pulse{ 0%,100%{ opacity:1; transform:scale(1);} 50%{ opacity:.45; transform:scale(.8);} }
+
+  /* ============ HOME ============ */
+  #screen-home{ align-items:center; padding:52px 64px 40px; }
+  .home-header{ text-align:center; margin-bottom:18px; }
+  .home-title{ font-size:44px; font-weight:700; letter-spacing:-0.02em; margin:0 0 8px; }
+  .home-sub{ font-size:17px; color:var(--text-2); margin:0; font-weight:450; }
+
+  .mode-toggle{
+    display:inline-flex; background:var(--surface); border-radius:999px; padding:4px;
+    margin-bottom:10px; gap:2px;
+  }
+  .mode-btn{
+    border:none; background:transparent; padding:9px 22px; border-radius:999px;
+    font-size:14px; font-weight:600; color:var(--text-2); cursor:pointer; font-family:inherit;
+    transition:background .2s var(--ease), color .2s var(--ease);
+  }
+  .mode-btn.active{ background:#fff; color:var(--blue); box-shadow:var(--shadow-sm); }
+  .mode-btn:active{ transform:scale(.97); }
+
+  .hours-note{ font-size:13px; color:var(--text-3); font-weight:600; margin:0 0 20px; letter-spacing:.01em; }
+
+  .search-wrap{ width:100%; max-width:620px; position:relative; margin-bottom:8px; }
+  .search-bar{
+    width:100%;
+    height:60px;
+    border-radius:999px;
+    background:var(--surface);
+    border:1px solid transparent;
+    padding:0 24px 0 54px;
+    font-size:18px;
+    font-family:inherit;
+    color:var(--text);
+    outline:none;
+    transition:box-shadow .25s var(--ease), border-color .25s var(--ease), background .25s var(--ease);
+  }
+  .search-bar::placeholder{ color:var(--text-3); }
+  .search-bar:focus{ background:#fff; border-color:var(--blue); box-shadow:0 0 0 4px rgba(0,91,187,0.12); }
+  .search-icon{
+    position:absolute; left:20px; top:50%; transform:translateY(-50%);
+    width:22px; height:22px; color:var(--text-3); pointer-events:none;
+  }
+  .search-icon svg{ width:100%; height:100%; }
+  .clear-btn{
+    position:absolute; right:16px; top:50%; transform:translateY(-50%);
+    width:26px; height:26px; border-radius:50%; background:var(--text-3);
+    border:none; display:none; align-items:center; justify-content:center; cursor:pointer;
+    transition:background .2s;
+  }
+  .clear-btn.show{ display:flex; }
+  .clear-btn:active{ background:var(--text-2); }
+  .clear-btn svg{ width:12px; height:12px; }
+
+  .results-area{
+    width:100%; max-width:760px; flex:1; margin-top:22px;
+    overflow-y:auto; padding-bottom:10px;
+  }
+  .empty-hint{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100%; color:var(--text-3); gap:14px; opacity:0; animation:fadeIn .5s var(--ease) forwards;
+  }
+  .empty-hint svg{ width:54px; height:54px; opacity:.55; }
+  .empty-hint span{ font-size:16px; font-weight:500; }
+
+  .no-results{
+    display:flex; align-items:center; justify-content:center; height:100%;
+    color:var(--text-2); font-size:17px; font-weight:500;
+    opacity:0; animation:fadeIn .35s var(--ease) forwards;
+  }
+
+  .card-grid{ display:flex; flex-direction:column; gap:12px; }
+  .student-card{
+    display:flex; align-items:center; gap:16px;
+    background:var(--surface);
+    border-radius:var(--radius-md);
+    padding:16px 20px;
+    cursor:pointer;
+    border:1px solid transparent;
+    transform:translateY(8px);
+    opacity:0;
+    animation:cardIn .38s var(--ease) forwards;
+    transition:transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease);
+  }
+  .student-card:active{ transform:scale(.985); background:#ECECEF; }
+  .student-card:hover{ box-shadow:var(--shadow-sm); }
+  .avatar{
+    width:46px; height:46px; border-radius:50%;
+    background:linear-gradient(145deg,#005BBB,#0074E8);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:600; font-size:16px; flex-shrink:0;
+  }
+  .card-info{ flex:1; min-width:0; }
+  .card-name{ font-size:17px; font-weight:600; margin:0 0 3px; display:flex; align-items:center; gap:8px; }
+  .checked-badge{
+    font-size:11px; font-weight:700; color:var(--green); background:rgba(52,199,89,0.12);
+    padding:2px 8px; border-radius:999px; letter-spacing:.02em;
+  }
+  .card-meta{ font-size:14.5px; color:var(--text-2); margin:0; }
+  .card-pickup{ text-align:right; margin-right:4px; }
+  .card-pickup-label{ font-size:11px; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+  .card-pickup-time{ font-size:15px; font-weight:600; color:var(--text); }
+  .chev{ width:11px; height:11px; color:var(--text-3); flex-shrink:0; }
+
+  @keyframes cardIn{ to{ opacity:1; transform:translateY(0); } }
+  @keyframes fadeIn{ to{ opacity:1; } }
+
+  /* ============ DETAILS ============ */
+  #screen-details{ padding:0; }
+  .details-top{
+    display:flex; align-items:center; gap:14px;
+    padding:22px 28px 10px;
+  }
+  .back-btn{
+    width:40px; height:40px; border-radius:50%; background:var(--surface);
+    border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:transform .15s var(--ease), background .15s;
+  }
+  .back-btn:active{ transform:scale(.9); background:var(--surface-2); }
+  .back-btn svg{ width:16px; height:16px; color:var(--text); }
+
+  .details-body{ flex:1; overflow-y:auto; padding:6px 64px 0; }
+  .details-name{ font-size:34px; font-weight:700; letter-spacing:-0.02em; margin:6px 0 22px; }
+
+  .info-card{
+    background:var(--surface); border-radius:var(--radius-lg);
+    padding:6px 22px; margin-bottom:20px;
+  }
+  .info-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:15px 0; border-bottom:1px solid rgba(0,0,0,0.06);
+  }
+  .info-row:last-child{ border-bottom:none; }
+  .info-label{ font-size:15px; color:var(--text-2); font-weight:500; }
+  .info-value{ font-size:16px; font-weight:600; color:var(--text); text-align:right; }
+
+  .stat-card{
+    background:linear-gradient(145deg,#005BBB,#0074E8);
+    border-radius:var(--radius-lg); padding:20px 24px; margin-bottom:20px;
+    color:#fff; display:flex; align-items:center; justify-content:space-between;
+    box-shadow:0 10px 24px rgba(0,91,187,0.25);
+  }
+  .stat-label{ font-size:13px; font-weight:700; opacity:.85; text-transform:uppercase; letter-spacing:.05em; }
+  .stat-value{ font-size:26px; font-weight:700; letter-spacing:-0.01em; }
+
+  .section-label{ font-size:13px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:.04em; margin:0 0 12px 4px; }
+  .assign-grid{ display:flex; gap:14px; margin-bottom:20px; }
+  .assign-card{
+    flex:1; background:var(--surface); border-radius:var(--radius-md); padding:26px 22px;
+  }
+  .assign-subject{ font-size:15px; color:var(--text-2); font-weight:600; margin:0 0 8px; }
+  .assign-pages{ font-size:32px; font-weight:700; color:var(--blue); margin:0; letter-spacing:-0.01em; }
+
+  .notes-card{ background:var(--surface); border-radius:var(--radius-md); padding:18px 20px; margin-bottom:20px; }
+  .notes-text{ font-size:15px; color:var(--text); line-height:1.5; margin:0; }
+
+  .details-footer{ padding:16px 64px 26px; background:var(--bg); }
+  .cta-btn{
+    width:100%; height:62px; border:none; border-radius:20px;
+    background:var(--blue); color:#fff; font-size:18px; font-weight:600;
+    letter-spacing:.01em; cursor:pointer;
+    transition:transform .12s var(--ease), background .12s var(--ease);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .cta-btn:active{ transform:scale(.975); background:var(--blue-press); }
+  .cta-btn.checkout{ background:var(--text); }
+  .cta-btn.checkout:active{ background:#000; }
+
+  /* history chart removed — lives on the dashboard only now */
+
+  /* ============ SUCCESS ============ */
+  #screen-success{ align-items:center; justify-content:center; text-align:center; padding:40px; }
+  .check-circle-wrap{ width:110px; height:110px; margin-bottom:26px; }
+  .success-title{ font-size:30px; font-weight:700; letter-spacing:-0.02em; margin:0 0 10px; }
+  .success-name{ font-size:19px; font-weight:600; color:var(--text); margin:0 0 26px; }
+  .success-detail{
+    background:var(--surface); border-radius:var(--radius-md);
+    padding:18px 30px; min-width:260px;
+  }
+  .success-row{ display:flex; justify-content:space-between; align-items:center; gap:24px; padding:8px 0; font-size:15px; }
+  .success-row + .success-row{ border-top:1px solid rgba(0,0,0,0.06); }
+  .success-row .l{ color:var(--text-2); font-weight:500; }
+  .success-row .r{ font-weight:600; }
+
+  /* Expected Pickup gets called out — same type scale as everything
+     else, just a step up in size/weight so it reads first. */
+  .success-row.pickup .r{ color:var(--blue); font-weight:700; font-size:17px; letter-spacing:-0.01em; }
+
+  .check-circle{ width:100%; height:100%; }
+  .check-circle circle{
+    fill:none; stroke:var(--green); stroke-width:5;
+    stroke-dasharray:283; stroke-dashoffset:283;
+    transform:rotate(-90deg); transform-origin:50% 50%;
+    animation:circleDraw .5s var(--ease) forwards;
+  }
+  .check-circle path{
+    fill:none; stroke:var(--green); stroke-width:6; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:40; stroke-dashoffset:40;
+    animation:checkDraw .35s var(--ease) .45s forwards;
+  }
+  @keyframes circleDraw{ to{ stroke-dashoffset:0; } }
+  @keyframes checkDraw{ to{ stroke-dashoffset:0; } }
+</style>
+</head>
+<body>
+
+<div id="device">
+  <div class="sync-pill"><span class="sync-dot" id="syncDot"></span><span id="syncText">Connecting&hellip;</span></div>
+
+  <!-- HOME -->
+  <div class="screen" id="screen-home">
+    <div class="home-header">
+      <h1 class="home-title">Welcome to Kumon</h1>
+      <p class="home-sub" id="homeSub">Search by student name or parent phone number.</p>
+    </div>
+    <div class="mode-toggle" id="modeToggle">
+      <button class="mode-btn active" data-mode="student">Students</button>
+      <button class="mode-btn" data-mode="staff">Staff</button>
+    </div>
+    <p class="hours-note" id="hoursNote"></p>
+    <div class="search-wrap" id="searchWrap">
+      <span class="search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input id="searchInput" class="search-bar" type="text" placeholder="Search by name or phone number" autocomplete="off" inputmode="search" enterkeyhint="search" spellcheck="false" autocapitalize="words">
+      <button class="clear-btn" id="clearBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="results-area" id="resultsArea"></div>
+  </div>
+
+  <!-- DETAILS -->
+  <div class="screen" id="screen-details">
+    <div class="details-top">
+      <button class="back-btn" id="backBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+    <div class="details-body" id="detailsBody"></div>
+    <div class="details-footer">
+      <button class="cta-btn" id="ctaBtn"></button>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="screen" id="screen-success">
+    <div class="check-circle-wrap">
+      <svg class="check-circle" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45"/>
+        <path d="M30 52 L44 66 L72 36"/>
+      </svg>
+    </div>
+    <h1 class="success-title" id="successTitle">Check-In Complete!</h1>
+    <p class="success-name" id="successName">Student Name</p>
+    <div class="success-detail" id="successDetail"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---- Live Google Sheet data source ----
+  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxJM1sTo1q94QxiUsszgR3oLHSZ8ss3mQYnmZp1NJbiLeY9Cr0Ds5RTjc9UqPpG3ZjCCA/exec";
+  const POLL_INTERVAL_MS = 6000;
+
+  const STUDENT_FIELD = {
+    name: "Name:", id: "ID", phone: "Phone number", math: "Math",
+    reading: "Reading", pickup: "Pick-up Time", parent: "Parent",
+    checkedIn: "Checked In", checkInTime: "Check In Time",
+    checkOutTime: "Check Out Time", notes: "Notes",
+    sessionMinutes: "Session Minutes", expectedPickup: "Expected Pickup",
+    weeklyMinutes: "Weekly Minutes"
+  };
+
+  const STAFF_FIELD = {
+    name: "Staff Name", id: "ID", phone: "Phone",
+    checkedIn: "Checked In", checkInTime: "Check In Time", checkOutTime: "Check Out Time",
+    monthlyMinutes: "Monthly Minutes", notes: "Notes"
+  };
+
+  const HOURS_TEXT = {
+    0: "Closed today", 1: "Today: 3:00 PM \u2013 7:00 PM", 2: "Today: 4:00 PM \u2013 6:00 PM",
+    3: "Today: 3:00 PM \u2013 7:00 PM", 4: "Today: 3:00 PM \u2013 7:00 PM",
+    5: "Closed today", 6: "Closed today"
+  };
+
+  const FALLBACK_STUDENTS = [
+    { row:2, name:"Emma Rodriguez", parent:"Maria Rodriguez", phone:"(203) 555-0148", reading:"48-52", math:"61-65", pickup:"4:30 PM", checkedIn:false, checkInTime:null, checkOutTime:null, notes:"", sessionMinutes:60, expectedPickup:null, weeklyMinutes:0 },
+    { row:3, name:"Liam Chen", parent:"David Chen", phone:"(203) 555-0192", reading:"22-26", math:"88-92", pickup:"5:00 PM", checkedIn:true, checkInTime:"3:42 PM", checkOutTime:null, notes:"", sessionMinutes:60, expectedPickup:"4:42 PM", weeklyMinutes:120 }
+  ];
+  const FALLBACK_STAFF = [
+    { row:2, name:"Jordan Ellis", phone:"(203) 555-0110", checkedIn:false, checkInTime:null, checkOutTime:null, notes:"", monthlyMinutes:0 }
+  ];
+
+  let mode = 'student';
+  let students = [];
+  let staff = [];
+  let connected = false;
+  let pollTimer = null;
+  let currentId = null;
+
+  const el = sel => document.querySelector(sel);
+  const syncDot = el('#syncDot');
+  const syncText = el('#syncText');
+  const homeSub = el('#homeSub');
+
+  function setSyncState(state, label){
+    syncDot.className = 'sync-dot ' + state;
+    syncText.textContent = label;
+  }
+
+  function digitsOnly(s){ return String(s == null ? '' : s).replace(/\D/g,''); }
+
+  function minutesToHM(mins){
+    const m = Math.max(0, Math.round(Number(mins) || 0));
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return h === 0 ? (rem + 'm') : (h + 'h ' + rem + 'm');
+  }
+
+  function normalizeStudent(row){
+    const truthy = v => v === true || v === 'TRUE' || v === 'true';
+    return {
+      row: row.row,
+      name: row[STUDENT_FIELD.name] || '',
+      id: row[STUDENT_FIELD.id] || row.row,
+      parent: row[STUDENT_FIELD.parent] || '',
+      phone: row[STUDENT_FIELD.phone] || '',
+      reading: row[STUDENT_FIELD.reading] || '\u2014',
+      math: row[STUDENT_FIELD.math] || '\u2014',
+      pickup: row[STUDENT_FIELD.pickup] || '\u2014',
+      checkedIn: truthy(row[STUDENT_FIELD.checkedIn]),
+      checkInTime: row[STUDENT_FIELD.checkInTime] || null,
+      checkOutTime: row[STUDENT_FIELD.checkOutTime] || null,
+      notes: row[STUDENT_FIELD.notes] || '',
+      sessionMinutes: Number(row[STUDENT_FIELD.sessionMinutes]) || 60,
+      expectedPickup: row[STUDENT_FIELD.expectedPickup] || null,
+      weeklyMinutes: Number(row[STUDENT_FIELD.weeklyMinutes]) || 0
+    };
+  }
+
+  function normalizeStaff(row){
+    const truthy = v => v === true || v === 'TRUE' || v === 'true';
+    return {
+      row: row.row,
+      name: row[STAFF_FIELD.name] || '',
+      id: row[STAFF_FIELD.id] || row.row,
+      phone: row[STAFF_FIELD.phone] || '',
+      checkedIn: truthy(row[STAFF_FIELD.checkedIn]),
+      checkInTime: row[STAFF_FIELD.checkInTime] || null,
+      checkOutTime: row[STAFF_FIELD.checkOutTime] || null,
+      notes: row[STAFF_FIELD.notes] || '',
+      monthlyMinutes: Number(row[STAFF_FIELD.monthlyMinutes]) || 0
+    };
+  }
+
+  function urlFor(type){
+    return WEBAPP_URL + (WEBAPP_URL.indexOf('?') === -1 ? '?' : '&') + 'type=' + type;
+  }
+
+  async function fetchData(){
+    if(!WEBAPP_URL || WEBAPP_URL.indexOf('PASTE_') === 0){
+      students = FALLBACK_STUDENTS;
+      staff = FALLBACK_STAFF;
+      connected = false;
+      setSyncState('offline', 'Not connected \u2014 sample data');
+      renderResults(searchInput.value);
+      return;
+    }
+    try{
+      const res = await fetch(urlFor(mode));
+      if(!res.ok) throw new Error('Bad response');
+      const data = await res.json();
+      if(mode === 'staff'){
+        staff = data.map(normalizeStaff).filter(s => s.name);
+      } else {
+        students = data.map(normalizeStudent).filter(s => s.name);
+      }
+      connected = true;
+      setSyncState('online', 'Synced with Google Sheet');
+      renderResults(searchInput.value);
+      if(currentId !== null){
+        const list = mode === 'staff' ? staff : students;
+        const stillOpen = list.find(s => s.row === currentId);
+        if(stillOpen) renderDetails();
+      }
+    }catch(err){
+      connected = false;
+      setSyncState('error', 'Sync error \u2014 retrying\u2026');
+    }
+  }
+
+  async function postAction(rowNum, action){
+    if(!connected) return { success:true, offline:true };
+    try{
+      const res = await fetch(WEBAPP_URL, {
+        method:'POST',
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+        body: JSON.stringify({ row: rowNum, action, type: mode })
+      });
+      return await res.json();
+    }catch(err){
+      return { success:false, error:String(err) };
+    }
+  }
+
+  const homeScreen = el('#screen-home');
+  const detailsScreen = el('#screen-details');
+  const successScreen = el('#screen-success');
+  const searchInput = el('#searchInput');
+  const clearBtn = el('#clearBtn');
+  const resultsArea = el('#resultsArea');
+  const detailsBody = el('#detailsBody');
+  const ctaBtn = el('#ctaBtn');
+
+  function initials(name){
+    return name.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+  }
+
+  function emptyHint(){
+    return `<div class="empty-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Start typing to search</span>
+    </div>`;
+  }
+
+  function renderResults(query){
+    const q = query.trim().toLowerCase();
+    if(!q){ resultsArea.innerHTML = emptyHint(); return; }
+
+    const qDigits = digitsOnly(q);
+    const list = mode === 'staff' ? staff : students;
+    const matches = list.filter(s=>{
+      // Match if any word in the name STARTS WITH the query
+      // (so "N" matches "Navya"/"Nira" but not "Andrew"/"Andy";
+      // searching a last name still works, e.g. "Rod" -> "Emma Rodriguez")
+      const nameWords = s.name.toLowerCase().split(/\s+/).filter(Boolean);
+      const nameMatch = nameWords.some(word => word.startsWith(q));
+      const phoneMatch = qDigits.length > 0 && digitsOnly(s.phone).includes(qDigits);
+      return nameMatch || phoneMatch;
+    });
+    matches.sort((a,b)=> a.name.localeCompare(b.name));
+
+    if(matches.length === 0){
+      resultsArea.innerHTML = `<div class="no-results">No ${mode === 'staff' ? 'staff member' : 'student'} found.</div>`;
+      return;
+    }
+
+    resultsArea.innerHTML = `<div class="card-grid">${matches.map((s,i)=>`
+      <div class="student-card" style="animation-delay:${i*35}ms" data-row="${s.row}">
+        <div class="avatar">${initials(s.name)}</div>
+        <div class="card-info">
+          <p class="card-name">${s.name}${s.checkedIn ? '<span class="checked-badge">' + (mode==='staff' ? 'CLOCKED IN' : 'CHECKED IN') + '</span>' : ''}</p>
+          <p class="card-meta">${s.phone}</p>
+        </div>
+        ${mode === 'staff' ? '' : `
+        <div class="card-pickup">
+          <div class="card-pickup-label">${s.checkedIn ? 'Expected' : 'Pickup'}</div>
+          <div class="card-pickup-time">${s.checkedIn && s.expectedPickup ? s.expectedPickup : s.pickup}</div>
+        </div>`}
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    `).join('')}</div>`;
+
+    resultsArea.querySelectorAll('.student-card').forEach(card=>{
+      card.addEventListener('click', ()=> openDetails(Number(card.dataset.row)));
+    });
+  }
+
+  el('#searchWrap').addEventListener('click', (e)=>{
+    if(e.target !== searchInput) searchInput.focus();
+  });
+
+  searchInput.addEventListener('input', e=>{
+    clearBtn.classList.toggle('show', e.target.value.length > 0);
+    renderResults(e.target.value);
+  });
+  clearBtn.addEventListener('click', ()=>{
+    searchInput.value = '';
+    clearBtn.classList.remove('show');
+    renderResults('');
+    searchInput.focus();
+  });
+
+  document.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.dataset.mode === mode) return;
+      mode = btn.dataset.mode;
+      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active', b === btn));
+      homeSub.textContent = mode === 'staff'
+        ? 'Search by staff name or phone number.'
+        : 'Search by student name or parent phone number.';
+      searchInput.value = '';
+      clearBtn.classList.remove('show');
+      renderResults('');
+      setSyncState('offline', 'Loading\u2026');
+      fetchData();
+    });
+  });
+
+  // ---- Details ----
+  function openDetails(row){
+    currentId = row;
+    renderDetails();
+    detailsScreen.classList.add('active');
+    homeScreen.classList.add('slide-out-left');
+  }
+
+  function closeDetails(){
+    detailsScreen.classList.remove('active');
+    homeScreen.classList.remove('slide-out-left');
+  }
+
+  function renderDetails(){
+    const list = mode === 'staff' ? staff : students;
+    const s = list.find(x=>x.row===currentId);
+    if(!s) return;
+    if(mode === 'staff') renderStaffDetails(s); else renderStudentDetails(s);
+  }
+
+  function renderStudentDetails(s){
+    const pickupLabel = s.checkedIn ? 'Expected Pickup' : 'Pickup Time';
+    const pickupValue = s.checkedIn && s.expectedPickup ? s.expectedPickup : s.pickup;
+
+    detailsBody.innerHTML = `
+      <h1 class="details-name">${s.name}</h1>
+      <div class="info-card">
+        <div class="info-row"><span class="info-label">Parent Name</span><span class="info-value">${s.parent}</span></div>
+        <div class="info-row"><span class="info-label">Parent Phone Number</span><span class="info-value">${s.phone}</span></div>
+        <div class="info-row"><span class="info-label">${pickupLabel}</span><span class="info-value">${pickupValue}</span></div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">This Week</span>
+        <span class="stat-value">${minutesToHM(s.weeklyMinutes)}</span>
+      </div>
+      <p class="section-label">Today's Assignments</p>
+      <div class="assign-grid">
+        <div class="assign-card"><p class="assign-subject">Reading Pages</p><p class="assign-pages">${s.reading}</p></div>
+        <div class="assign-card"><p class="assign-subject">Math Pages</p><p class="assign-pages">${s.math}</p></div>
+      </div>
+      ${s.notes ? `<p class="section-label">Notes</p><div class="notes-card"><p class="notes-text">${s.notes}</p></div>` : ''}
+    `;
+
+    ctaBtn.textContent = s.checkedIn ? 'CHECK OUT STUDENT' : 'CHECK IN STUDENT';
+    ctaBtn.classList.toggle('checkout', s.checkedIn);
+  }
+
+  function renderStaffDetails(s){
+    detailsBody.innerHTML = `
+      <h1 class="details-name">${s.name}</h1>
+      <div class="info-card">
+        <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${s.phone}</span></div>
+        <div class="info-row"><span class="info-label">Status</span><span class="info-value">${s.checkedIn ? 'Clocked In' : 'Clocked Out'}</span></div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">This Month</span>
+        <span class="stat-value">${minutesToHM(s.monthlyMinutes)}</span>
+      </div>
+      ${s.notes ? `<p class="section-label">Notes</p><div class="notes-card"><p class="notes-text">${s.notes}</p></div>` : ''}
+    `;
+
+    ctaBtn.textContent = s.checkedIn ? 'CLOCK OUT' : 'CLOCK IN';
+    ctaBtn.classList.toggle('checkout', s.checkedIn);
+  }
+
+  el('#backBtn').addEventListener('click', closeDetails);
+
+  function formatTimeStr(d){
+    let h = d.getHours() % 12; if(h === 0) h = 12;
+    const m = String(d.getMinutes()).padStart(2,'0');
+    return `${h}:${m} ${d.getHours() < 12 ? 'AM' : 'PM'}`;
+  }
+  function formatDateStr(d){
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  ctaBtn.addEventListener('click', async ()=>{
+    const list = mode === 'staff' ? staff : students;
+    const s = list.find(x=>x.row===currentId);
+    if(!s || ctaBtn.disabled) return;
+
+    const action = s.checkedIn ? 'checkout' : 'checkin';
+    ctaBtn.disabled = true;
+
+    // Show success immediately using values computed right here on the
+    // device — no need to wait on the Apps Script round-trip (which
+    // routinely takes a couple seconds) just to tell the person "you're
+    // checked in." The sheet write still happens; we just don't block
+    // the screen on it.
+    const now = new Date();
+    const timeStr = formatTimeStr(now);
+    const dateStr = formatDateStr(now);
+    const optimistic = { success: true, time: timeStr, date: dateStr };
+
+    if(action === 'checkin'){
+      s.checkedIn = true; s.checkInTime = timeStr; s.checkOutTime = null;
+      if(mode === 'student'){
+        const mins = s.sessionMinutes || 60;
+        optimistic.expectedPickup = formatTimeStr(new Date(now.getTime() + mins * 60000));
+        s.expectedPickup = optimistic.expectedPickup;
+      }
+      showSuccess(s, 'in', timeStr, dateStr, optimistic);
+    } else {
+      s.checkedIn = false; s.checkOutTime = timeStr;
+      showSuccess(s, 'out', timeStr, dateStr, optimistic);
+    }
+
+    // Reconcile with the server quietly in the background. On the rare
+    // failure, undo the optimistic state and tell the person directly —
+    // this still normally resolves well within the 3s the success
+    // screen is on screen.
+    const result = await postAction(s.row, action);
+    ctaBtn.disabled = false;
+
+    if(result && result.success === false){
+      if(action === 'checkin'){ s.checkedIn = false; s.checkInTime = null; s.expectedPickup = null; }
+      else { s.checkedIn = true; s.checkOutTime = null; }
+      successScreen.classList.remove('active');
+      alert('Could not reach the sheet — that check-in/out may not have saved. Check the connection and try again.');
+      renderDetails();
+      return;
+    }
+
+    if(action === 'checkout' && result && typeof result.periodMinutes === 'number'){
+      if(mode === 'staff') s.monthlyMinutes = result.periodMinutes;
+      else s.weeklyMinutes = result.periodMinutes;
+    }
+    fetchData();
+  });
+
+  function showSuccess(s, type, timeStr, dateStr, result){
+    const isStaff = mode === 'staff';
+    const title = isStaff
+      ? (type === 'in' ? 'Clocked In!' : 'Clocked Out!')
+      : (type === 'in' ? 'Check-In Complete!' : 'Check-Out Complete!');
+
+    el('#successTitle').textContent = title;
+    el('#successName').textContent = s.name;
+
+    let rows = `<div class="success-row"><span class="l">${type === 'in' ? (isStaff ? 'Clocked In At' : 'Checked In At') : (isStaff ? 'Clocked Out At' : 'Checked Out At')}</span><span class="r">${timeStr}</span></div>`;
+    if(!isStaff && type === 'in' && result && result.expectedPickup){
+      rows += `<div class="success-row pickup"><span class="l">Expected Pickup</span><span class="r">${result.expectedPickup}</span></div>`;
+    }
+    if(type === 'out' && result && typeof result.periodMinutes === 'number'){
+      const periodLabel = isStaff ? 'This Month' : 'This Week';
+      rows += `<div class="success-row"><span class="l">${periodLabel}</span><span class="r">${minutesToHM(result.periodMinutes)}</span></div>`;
+    }
+    rows += `<div class="success-row"><span class="l">Date</span><span class="r">${dateStr}</span></div>`;
+    el('#successDetail').innerHTML = rows;
+
+    const circle = document.querySelector('.check-circle circle');
+    const path = document.querySelector('.check-circle path');
+    [circle, path].forEach(node=>{
+      node.style.animation = 'none';
+      void node.offsetWidth;
+      node.style.animation = null;
+    });
+
+    successScreen.classList.add('active');
+
+    setTimeout(()=>{
+      successScreen.classList.remove('active');
+      closeDetails();
+      searchInput.value = '';
+      clearBtn.classList.remove('show');
+      renderResults('');
+    }, 3000);
+  }
+
+  el('#hoursNote').textContent = HOURS_TEXT[new Date().getDay()];
+
+  fetchData();
+  pollTimer = setInterval(fetchData, POLL_INTERVAL_MS);
+})();
+</script>
+</body>
+</html>

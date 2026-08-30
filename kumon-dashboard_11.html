@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Kumon Desk — Dashboard</title>
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --surface:#F5F5F7;
+    --surface-2:#EFEFF2;
+    --blue:#005BBB;
+    --blue-press:#00499B;
+    --text:#1D1D1F;
+    --text-2:#6E6E73;
+    --text-3:#A1A1A6;
+    --green:#34C759;
+    --amber:#FF9F0A;
+    --radius-lg:24px;
+    --radius-md:20px;
+    --radius-sm:14px;
+    --shadow-sm:0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:0 8px 24px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
+    --ease:cubic-bezier(0.22,1,0.36,1);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:#E9E9EC;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif;
+    color:var(--text);
+    min-height:100vh;
+  }
+
+  #wrap{ max-width:1180px; margin:0 auto; padding:40px 32px 60px; }
+
+  .top{ display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:28px; }
+  .title{ font-size:34px; font-weight:700; letter-spacing:-0.02em; margin:0 0 6px; }
+  .subtitle{ font-size:15px; color:var(--text-2); margin:0; font-weight:450; }
+
+  .sync-pill{
+    display:flex; align-items:center; gap:7px; flex-shrink:0;
+    background:var(--bg); padding:8px 14px 8px 11px; border-radius:999px;
+    font-size:12.5px; font-weight:600; color:var(--text-2); box-shadow:var(--shadow-sm);
+    letter-spacing:.01em; margin-top:6px;
+  }
+  .sync-dot{ width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 2.2s ease-in-out infinite; }
+  .sync-dot.offline{ background:var(--text-3); animation:none; }
+  .sync-dot.error{ background:#FF3B30; }
+  @keyframes pulse{ 0%,100%{ opacity:1; transform:scale(1);} 50%{ opacity:.45; transform:scale(.8);} }
+
+  /* Title is the secret gesture zone — click it 5x quickly to reveal
+     the admin panel below. cursor stays default so it doesn't look
+     like a button to anyone who isn't already looking for it. */
+  #secretTrigger{ user-select:none; -webkit-user-select:none; }
+
+  .admin-panel{
+    background:#FFF8ED; border:1.5px solid #FFE3B0; border-radius:var(--radius-md);
+    padding:16px 20px; margin-bottom:20px; animation:adminIn .25s var(--ease);
+  }
+  @keyframes adminIn{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+  .admin-panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .admin-panel-title{ font-size:13px; font-weight:700; color:#946200; letter-spacing:.01em; }
+  .admin-panel-close{
+    border:none; background:transparent; font-size:20px; line-height:1; color:#946200;
+    cursor:pointer; padding:2px 6px; opacity:.6;
+  }
+  .admin-panel-close:hover{ opacity:1; }
+  .admin-row{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:10px 0; border-top:1px solid rgba(148,98,0,0.12);
+  }
+  .admin-row:first-of-type{ border-top:none; }
+  .admin-row-label{ font-size:14px; font-weight:600; color:var(--text); }
+  .admin-row-sub{ font-size:12.5px; color:var(--text-2); margin-top:2px; }
+
+  .admin-toggle{
+    width:46px; height:27px; border-radius:999px; border:none; background:var(--surface-2);
+    position:relative; cursor:pointer; flex-shrink:0; transition:background .2s var(--ease);
+  }
+  .admin-toggle::after{
+    content:''; position:absolute; top:2px; left:2px; width:23px; height:23px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.25); transition:transform .2s var(--ease);
+  }
+  .admin-toggle.on{ background:var(--green); }
+  .admin-toggle.on::after{ transform:translateX(19px); }
+
+  .admin-danger-btn{
+    border:none; background:#fff; color:#B3261E; font-weight:700; font-size:13px;
+    padding:9px 16px; border-radius:999px; cursor:pointer; font-family:inherit;
+    border:1.5px solid #F3C8C4; transition:background .15s, transform .12s var(--ease);
+  }
+  .admin-danger-btn:hover{ background:#FDEEED; }
+  .admin-danger-btn:active{ transform:scale(.96); }
+  .admin-danger-btn:disabled{ opacity:.5; cursor:default; }
+
+  .stat-row{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-bottom:26px; max-width:460px; }
+  .stat-card{
+    background:var(--bg); border-radius:var(--radius-md); padding:22px 24px;
+    box-shadow:var(--shadow-sm);
+  }
+  .stat-card .num{ font-size:32px; font-weight:700; letter-spacing:-0.02em; line-height:1.1; }
+  .stat-card .lbl{ font-size:13px; color:var(--text-2); font-weight:600; margin-top:5px; }
+  .stat-card.accent .num{ color:var(--blue); }
+
+  .mode-toggle{
+    display:inline-flex; background:var(--surface-2); border-radius:999px; padding:4px; gap:2px; margin-bottom:18px;
+  }
+  .mode-btn{
+    border:none; background:transparent; padding:9px 22px; border-radius:999px;
+    font-size:14px; font-weight:600; color:var(--text-2); cursor:pointer; font-family:inherit;
+    transition:background .2s var(--ease), color .2s var(--ease);
+  }
+  .mode-btn.active{ background:#fff; color:var(--blue); box-shadow:var(--shadow-sm); }
+
+  .view-toggle{
+    display:inline-flex; background:var(--bg); border:1.5px solid var(--surface-2); border-radius:999px;
+    padding:4px; gap:2px; margin-bottom:14px; box-shadow:var(--shadow-sm);
+  }
+  .view-btn{
+    border:none; background:transparent; padding:9px 24px; border-radius:999px;
+    font-size:14px; font-weight:700; color:var(--text-2); cursor:pointer; font-family:inherit;
+    transition:background .2s var(--ease), color .2s var(--ease);
+  }
+  .view-btn.active{ background:var(--blue); color:#fff; }
+
+  .spotlight-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+  .spotlight-card{
+    background:var(--bg); border-radius:var(--radius-md); padding:20px 22px;
+    box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:14px;
+  }
+  .spotlight-icon{
+    width:44px; height:44px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .spotlight-icon svg{ width:21px; height:21px; }
+  .spotlight-card.most .spotlight-icon{ background:rgba(52,199,89,0.12); color:var(--green); }
+  .spotlight-card.least .spotlight-icon{ background:var(--surface-2); color:var(--text-2); }
+  .spotlight-label{ font-size:12px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:.03em; margin-bottom:3px; }
+  .spotlight-name{ font-size:17px; font-weight:700; letter-spacing:-0.01em; line-height:1.25; }
+  .spotlight-value{ font-size:13.5px; color:var(--text-2); font-weight:600; margin-top:1px; }
+
+  .leaderboard-list{ display:flex; flex-direction:column; gap:8px; margin-top:20px; }
+  .leaderboard-row{
+    display:flex; align-items:center; gap:14px; background:var(--bg);
+    border-radius:14px; padding:11px 16px; box-shadow:var(--shadow-sm);
+  }
+  .lb-rank{ width:22px; text-align:center; font-size:13px; font-weight:700; color:var(--text-3); flex-shrink:0; }
+  .lb-rank.top{ color:var(--blue); }
+  .lb-avatar{
+    width:32px; height:32px; border-radius:50%; flex-shrink:0; font-size:12px;
+    background:linear-gradient(145deg,#005BBB,#0074E8); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:600;
+  }
+  .lb-avatar.zero{ background:var(--surface-2); color:var(--text-3); }
+  .lb-name{ flex:0 0 160px; font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-bar-track{ flex:1; height:7px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+  .lb-bar-fill{ height:100%; border-radius:999px; background:var(--blue); transition:width .5s var(--ease); }
+  .lb-bar-fill.zero{ background:var(--surface-2); }
+  .lb-value{ width:66px; text-align:right; font-weight:700; font-size:13px; color:var(--text); flex-shrink:0; }
+  .lb-value.zero{ color:var(--text-3); font-weight:600; }
+
+  .toolbar{ display:flex; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  .search-wrap{ position:relative; flex:1; min-width:240px; max-width:420px; }
+  .search-bar{
+    width:100%; height:46px; border-radius:999px; background:var(--bg);
+    border:1px solid transparent; padding:0 18px 0 44px; font-size:15px; font-family:inherit;
+    color:var(--text); outline:none; box-shadow:var(--shadow-sm);
+    transition:box-shadow .2s var(--ease), border-color .2s var(--ease);
+  }
+  .search-bar::placeholder{ color:var(--text-3); }
+  .search-bar:focus{ border-color:var(--blue); box-shadow:0 0 0 4px rgba(0,91,187,0.12); }
+  .search-icon{ position:absolute; left:16px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--text-3); }
+  .search-icon svg{ width:100%; height:100%; }
+
+  .filter-chip{
+    border:none; background:var(--bg); box-shadow:var(--shadow-sm); color:var(--text-2);
+    font-size:13.5px; font-weight:600; padding:10px 16px; border-radius:999px; cursor:pointer;
+    font-family:inherit; transition:background .18s, color .18s;
+  }
+  .filter-chip.active{ background:var(--blue); color:#fff; }
+
+  table{ width:100%; border-collapse:separate; border-spacing:0 10px; }
+  thead th{
+    text-align:left; font-size:12px; font-weight:700; color:var(--text-3);
+    text-transform:uppercase; letter-spacing:.04em; padding:0 18px 4px;
+  }
+  thead th.num-col{ text-align:right; }
+  tbody tr{
+    background:var(--bg); box-shadow:var(--shadow-sm); border-radius:var(--radius-sm);
+    opacity:0; transform:translateY(6px); animation:rowIn .32s var(--ease) forwards;
+    cursor:pointer; transition:box-shadow .18s var(--ease), transform .12s var(--ease);
+  }
+  tbody tr:hover{ box-shadow:var(--shadow-md); }
+  tbody tr:active{ transform:scale(.997); }
+  @keyframes rowIn{ to{ opacity:1; transform:translateY(0); } }
+  tbody td{ padding:15px 18px; font-size:14.5px; vertical-align:middle; }
+  tbody td:first-child{ border-radius:var(--radius-sm) 0 0 var(--radius-sm); }
+  tbody td:last-child{ border-radius:0 var(--radius-sm) var(--radius-sm) 0; text-align:right; }
+
+  .name-cell{ display:flex; align-items:center; gap:12px; }
+  .avatar{
+    width:36px; height:36px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(145deg,#005BBB,#0074E8); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:600; font-size:13px;
+  }
+  .avatar.out{ background:linear-gradient(145deg,#A1A1A6,#C7C7CC); }
+  .p-name{ font-weight:600; }
+  .p-phone{ font-size:12.5px; color:var(--text-2); margin-top:1px; }
+
+  .status-badge{
+    font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:.02em;
+    display:inline-block;
+  }
+  .status-badge.in{ color:var(--green); background:rgba(52,199,89,0.12); }
+  .status-badge.out{ color:var(--text-3); background:var(--surface-2); }
+
+  .muted{ color:var(--text-3); }
+  .total-pill{
+    font-weight:700; color:var(--blue); background:rgba(0,91,187,0.08);
+    padding:4px 11px; border-radius:999px; font-size:13.5px; display:inline-block;
+  }
+
+  .action-cell{ text-align:right; }
+  .quick-toggle{
+    border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:10.5px;
+    letter-spacing:.04em; text-transform:uppercase; padding:6px 13px; border-radius:999px;
+    color:#fff; min-width:44px; transition:transform .12s var(--ease), opacity .15s var(--ease), background .15s;
+  }
+  .quick-toggle.in{ background:var(--green); }
+  .quick-toggle.in:active{ background:#2CA84A; }
+  .quick-toggle.out{ background:var(--text-3); }
+  .quick-toggle.out:active{ background:#8E8E93; }
+  .quick-toggle:disabled{ opacity:.5; cursor:default; }
+  .quick-toggle:active{ transform:scale(.93); }
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--text-3);
+  }
+  .empty-state svg{ width:44px; height:44px; opacity:.5; margin-bottom:12px; }
+  .empty-state p{ font-size:15px; font-weight:500; margin:0; }
+
+  @media (max-width:760px){
+    #wrap{ padding:24px 16px 40px; }
+    .stat-row{ max-width:none; }
+    .title{ font-size:26px; }
+    .spotlight-row{ grid-template-columns:1fr; }
+    .lb-name{ flex:1; }
+    thead{ display:none; }
+    table, tbody, tr, td{ display:block; width:100%; }
+    tbody tr{ padding:14px 16px; margin-bottom:12px; }
+    tbody td{ padding:4px 0; text-align:left !important; border-radius:0 !important; }
+    .name-cell{ margin-bottom:8px; }
+    tbody td:not(:first-child)::before{
+      content:attr(data-label); display:inline-block; width:110px; font-size:11.5px;
+      font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:.03em;
+    }
+  }
+
+  /* ============ HISTORY MODAL ============ */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,0.35);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    opacity:0; pointer-events:none; transition:opacity .22s var(--ease); z-index:50;
+  }
+  .modal-backdrop.open{ opacity:1; pointer-events:auto; }
+  .modal-card{
+    background:var(--bg); border-radius:var(--radius-lg); width:100%; max-width:480px;
+    padding:28px 28px 24px; box-shadow:0 30px 80px rgba(0,0,0,0.28);
+    transform:scale(.96) translateY(8px); transition:transform .22s var(--ease);
+    max-height:88vh; overflow-y:auto;
+  }
+  .modal-backdrop.open .modal-card{ transform:scale(1) translateY(0); }
+  .modal-top{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:2px; }
+  .modal-eyebrow{ font-size:12px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:.05em; }
+  .modal-name{ font-size:22px; font-weight:700; letter-spacing:-0.01em; margin:2px 0 0; }
+  .modal-close{
+    width:32px; height:32px; border-radius:50%; background:var(--surface); border:none;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+    color:var(--text-2);
+  }
+  .modal-close svg{ width:14px; height:14px; }
+
+  .modal-total-label{ font-size:14px; color:var(--text-2); font-weight:500; margin:18px 0 2px; }
+  .modal-total-value{ font-size:38px; font-weight:700; letter-spacing:-0.02em; }
+
+  .week-nav-btn{
+    width:32px; height:32px; border-radius:50%; border:none; background:transparent;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-2);
+    flex-shrink:0; transition:background .18s var(--ease), color .18s var(--ease), transform .12s var(--ease);
+  }
+  .week-nav-btn svg{ width:14px; height:14px; }
+  .week-nav-btn:hover:not(:disabled){ background:rgba(0,91,187,0.1); color:var(--blue); }
+  .week-nav-btn:active:not(:disabled){ transform:scale(.85); }
+  .week-nav-btn:disabled{ opacity:.28; cursor:default; }
+  .week-nav-label{ font-size:13.5px; font-weight:600; color:var(--text); min-width:132px; text-align:center; padding:0 6px; }
+
+  .chart-area{
+    margin-top:20px; height:150px; display:flex; align-items:flex-end; gap:8px;
+    padding:0 2px; position:relative;
+  }
+  .chart-bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; }
+  .chart-bar{
+    width:100%; max-width:34px; border-radius:6px 6px 3px 3px; background:var(--blue);
+    min-height:3px; transition:height .4s var(--ease);
+  }
+  .chart-bar.today{ background:var(--blue-press); }
+  .chart-bar.zero{ background:var(--surface-2); }
+  .chart-day-label{ font-size:12px; color:var(--text-3); font-weight:600; margin-top:8px; }
+  .chart-date-label{ font-size:10px; color:var(--text-3); opacity:.7; font-weight:500; margin-top:1px; }
+
+  .week-nav{
+    display:flex; align-items:center; justify-content:center; gap:2px; margin:18px auto 20px;
+    background:var(--surface); border-radius:999px; padding:5px; width:max-content;
+    box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,0.03);
+  }
+
+  .day-list{ margin-top:22px; display:flex; flex-direction:column; gap:2px; }
+  .day-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 2px; font-size:14.5px; border-bottom:1px solid var(--surface); }
+  .day-row:last-child{ border-bottom:none; }
+
+  .assign-editor{ margin-top:26px; padding-top:22px; border-top:1px solid var(--surface-2); }
+  .assign-editor .section-label{ font-size:13px; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:.03em; margin:0 0 12px; }
+  .assign-editor-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .assign-field{ display:flex; flex-direction:column; gap:6px; }
+  .assign-field.full{ grid-column:1 / -1; }
+  .assign-field span{ font-size:12.5px; font-weight:600; color:var(--text-2); }
+  .assign-field input{
+    height:42px; border-radius:12px; border:1.5px solid var(--surface-2); background:var(--surface);
+    padding:0 13px; font-size:14.5px; font-family:inherit; color:var(--text); outline:none;
+    transition:border-color .15s var(--ease), background .15s var(--ease);
+  }
+  .assign-field input:focus{ border-color:var(--blue); background:#fff; }
+  .hm-input-row{ display:flex; align-items:center; gap:6px; }
+  .hm-input-row input{ width:64px; flex:none; }
+  .hm-sep{ font-size:13px; color:var(--text-2); font-weight:600; }
+  .assign-save-row{ display:flex; align-items:center; gap:12px; }
+  .assign-save-btn{
+    height:42px; padding:0 22px; border-radius:999px; border:none; background:var(--blue);
+    color:#fff; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer;
+    transition:background .15s, transform .12s var(--ease);
+  }
+  .assign-save-btn:hover{ background:var(--blue-press); }
+  .assign-save-btn:active{ transform:scale(.96); }
+  .assign-save-btn:disabled{ opacity:.5; cursor:default; }
+  .assign-saved-note{ font-size:13px; font-weight:600; color:var(--green); opacity:0; transition:opacity .2s var(--ease); }
+  .assign-saved-note.show{ opacity:1; }
+  .day-row .dname{ color:var(--text-2); font-weight:500; }
+  .day-row .dval{ font-weight:600; }
+  .day-row.today .dname{ color:var(--blue); font-weight:700; }
+  .day-row.zero .dval{ color:var(--text-3); font-weight:500; }
+
+  .modal-loading{ text-align:center; padding:30px 0; color:var(--text-3); font-size:14px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+
+  <div class="top">
+    <div>
+      <h1 class="title" id="secretTrigger">Kumon Desk</h1>
+      <p class="subtitle">Attendance dashboard — live from your Google Sheet</p>
+    </div>
+    <div class="sync-pill">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncLabel">Connecting…</span>
+    </div>
+  </div>
+
+  <div class="admin-panel" id="adminPanel" style="display:none">
+    <div class="admin-panel-head">
+      <span class="admin-panel-title">🔒 Admin Tools</span>
+      <button class="admin-panel-close" id="adminPanelClose" aria-label="Hide admin tools">&times;</button>
+    </div>
+    <div class="admin-row">
+      <div>
+        <div class="admin-row-label">Auto checkout everyone at 8:00 PM</div>
+        <div class="admin-row-sub" id="autoCheckoutSubtext">Checking status…</div>
+      </div>
+      <button class="admin-toggle" id="autoCheckoutToggle" aria-label="Toggle auto checkout"></button>
+    </div>
+    <div class="admin-row">
+      <div>
+        <div class="admin-row-label">Test it now</div>
+        <div class="admin-row-sub">Immediately checks out everyone currently checked in</div>
+      </div>
+      <button class="admin-danger-btn" id="runAutoCheckoutBtn">Run Auto-Checkout Now</button>
+    </div>
+  </div>
+
+  <div class="stat-row" id="statRow"></div>
+
+  <div class="view-toggle">
+    <button class="view-btn active" data-view="checkin">Check-In</button>
+    <button class="view-btn" data-view="attendance">Attendance</button>
+  </div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" data-mode="student">Students</button>
+    <button class="mode-btn" data-mode="staff">Staff</button>
+  </div>
+
+  <div id="checkinView">
+    <div class="stat-row" id="statRow"></div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input class="search-bar" id="searchInput" placeholder="Search by name or phone" autocomplete="off">
+      </div>
+      <button class="filter-chip active" data-filter="all">All</button>
+      <button class="filter-chip" data-filter="in">Checked in</button>
+    </div>
+
+    <div id="tableHost"></div>
+  </div>
+
+  <div id="attendanceView" style="display:none">
+    <div id="attendanceHost"></div>
+  </div>
+
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-card" id="modalCard"></div>
+</div>
+
+<script>
+  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxJM1sTo1q94QxiUsszgR3oLHSZ8ss3mQYnmZp1NJbiLeY9Cr0Ds5RTjc9UqPpG3ZjCCA/exec";
+  const POLL_INTERVAL_MS = 8000;
+
+  const STUDENT_FIELD = {
+    name: "Name:", id: "ID", phone: "Phone number",
+    checkedIn: "Checked In", checkInTime: "Check In Time", checkOutTime: "Check Out Time",
+    notes: "Notes", weeklyMinutes: "Weekly Minutes", math: "Math", reading: "Reading",
+    sessionMinutes: "Session Minutes"
+  };
+  const STAFF_FIELD = {
+    name: "Staff Name", id: "ID", phone: "Phone",
+    checkedIn: "Checked In", checkInTime: "Check In Time", checkOutTime: "Check Out Time",
+    weeklyMinutes: "Weekly Minutes", monthlyMinutes: "Monthly Minutes", notes: "Notes"
+  };
+
+  let students = [], staff = [], mode = 'student', filter = 'all', connected = false;
+  let view = 'checkin', attendanceOffset = 0;
+  const isFetching = { student: false, staff: false };
+  const lastSnapshot = { student: '', staff: '' };
+  let pollTimer = null;
+
+  // Bumped every time a local action (check-in/out toggle, an hours
+  // correction, etc) authoritatively updates students/staff in place.
+  // A background fetch that started before such an edit but resolves
+  // after it is stale by definition — without this guard it can silently
+  // overwrite a just-made change with the older data it fetched,
+  // which is exactly what caused edits to "not stick" and the check-in
+  // button to seem to need multiple presses.
+  let localEditVersion = { student: 0, staff: 0 };
+
+  const el = s => document.querySelector(s);
+  const truthy = v => v === true || v === 'TRUE' || v === 'true';
+
+  function minutesToHM(mins){
+    const m = Math.max(0, Math.round(Number(mins) || 0));
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return h === 0 ? (rem + 'm') : (h + 'h ' + rem + 'm');
+  }
+
+  function initials(name){
+    return (name || '?').trim().split(/\s+/).slice(0,2).map(w => w[0]?.toUpperCase() || '').join('') || '?';
+  }
+
+  function escapeAttr(s){
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  }
+
+  function normalizeStudent(row){
+    return {
+      row: row.row,
+      name: row[STUDENT_FIELD.name] || '',
+      phone: row[STUDENT_FIELD.phone] || '',
+      checkedIn: truthy(row[STUDENT_FIELD.checkedIn]),
+      checkInTime: row[STUDENT_FIELD.checkInTime] || null,
+      checkOutTime: row[STUDENT_FIELD.checkOutTime] || null,
+      notes: row[STUDENT_FIELD.notes] || '',
+      weeklyMinutes: Number(row[STUDENT_FIELD.weeklyMinutes]) || 0,
+      math: row[STUDENT_FIELD.math] || '',
+      reading: row[STUDENT_FIELD.reading] || '',
+      sessionMinutes: Number(row[STUDENT_FIELD.sessionMinutes]) || 60
+    };
+  }
+
+  function normalizeStaff(row){
+    return {
+      row: row.row,
+      name: row[STAFF_FIELD.name] || '',
+      phone: row[STAFF_FIELD.phone] || '',
+      checkedIn: truthy(row[STAFF_FIELD.checkedIn]),
+      checkInTime: row[STAFF_FIELD.checkInTime] || null,
+      checkOutTime: row[STAFF_FIELD.checkOutTime] || null,
+      notes: row[STAFF_FIELD.notes] || '',
+      weeklyMinutes: Number(row[STAFF_FIELD.weeklyMinutes]) || 0,
+      monthlyMinutes: Number(row[STAFF_FIELD.monthlyMinutes]) || 0
+    };
+  }
+
+  function urlFor(type){
+    return WEBAPP_URL + (WEBAPP_URL.indexOf('?') === -1 ? '?' : '&') + 'type=' + type;
+  }
+
+  function setSyncState(state, label){
+    const dot = el('#syncDot');
+    dot.classList.remove('offline','error');
+    if(state !== 'online') dot.classList.add(state);
+    el('#syncLabel').textContent = label;
+  }
+
+  // Fetches one type (student/staff). Skips the request entirely if the
+  // previous call for that type hasn't resolved yet (no overlap under a
+  // slow connection), and skips re-rendering when the data is byte-for-
+  // byte identical to last time — this is the common case on an 8s poll,
+  // and avoids replaying the row-in animation / rebuilding the DOM for no
+  // visible change.
+  async function fetchType(type){
+    if(isFetching[type]) return;
+    isFetching[type] = true;
+    const versionAtStart = localEditVersion[type];
+    try{
+      const res = await fetch(urlFor(type), {cache:'no-store'});
+      const data = await res.json();
+      if(data.error) throw new Error(data.error);
+
+      // A local edit happened while this request was in flight — that
+      // edit is more recent than what we just fetched, so applying this
+      // response would silently revert it. Discard it; the next poll
+      // will pick up whatever's true after the edit's own write lands.
+      if(localEditVersion[type] !== versionAtStart){
+        isFetching[type] = false;
+        return;
+      }
+
+      const normalized = type === 'staff' ? data.map(normalizeStaff) : data.map(normalizeStudent);
+      const snapshot = JSON.stringify(normalized);
+      const changed = snapshot !== lastSnapshot[type];
+      lastSnapshot[type] = snapshot;
+      if(type === 'staff') staff = normalized; else students = normalized;
+      connected = true;
+      setSyncState('online', 'Live');
+      if(changed && mode === type) render();
+    }catch(err){
+      connected = false;
+      setSyncState('error', 'Connection error');
+      if(mode === type) render();
+    }finally{
+      isFetching[type] = false;
+    }
+  }
+
+  // Only the currently-visible tab needs to stay live-polled; the other
+  // type gets refreshed on demand the moment you switch to it (see the
+  // mode-toggle handler below), so steady-state traffic is halved.
+  function pollActiveMode(){ fetchType(mode); }
+
+  function startPolling(){
+    stopPolling();
+    pollTimer = setInterval(pollActiveMode, POLL_INTERVAL_MS);
+  }
+  function stopPolling(){
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  // Pause polling entirely while the tab/window isn't visible (kiosk
+  // screen asleep, user on another browser tab, etc), and catch up
+  // immediately the moment it becomes visible again.
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden){ stopPolling(); }
+    else { pollActiveMode(); startPolling(); }
+  });
+
+  function renderStats(){
+    const list = mode === 'staff' ? staff : students;
+    const inCount = list.filter(p => p.checkedIn).length;
+    el('#statRow').innerHTML = `
+      <div class="stat-card accent">
+        <div class="num">${inCount}</div>
+        <div class="lbl">Checked in now</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">${list.length}</div>
+        <div class="lbl">Total ${mode === 'staff' ? 'staff' : 'students'}</div>
+      </div>
+    `;
+  }
+
+  function digitsOnly(s){ return String(s || '').replace(/\D/g, ''); }
+
+  function renderTable(){
+    const q = el('#searchInput').value.trim().toLowerCase();
+    const qDigits = digitsOnly(q);
+    let list = mode === 'staff' ? staff : students;
+
+    list = list.filter(p => {
+      if(q === '') return true;
+      // Match only against the FIRST name, so "a" matches "Ava"/"Andrew"
+      // but not someone whose first name doesn't start with "a".
+      const firstName = (p.name.trim().split(/\s+/)[0] || '').toLowerCase();
+      const nameMatch = firstName.startsWith(q);
+      const phoneMatch = qDigits.length > 0 && digitsOnly(p.phone).includes(qDigits);
+      return nameMatch || phoneMatch;
+    }).filter(p => filter === 'all' || p.checkedIn);
+
+    list.sort((a,b) => {
+      if(a.checkedIn !== b.checkedIn) return a.checkedIn ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    const host = el('#tableHost');
+    if(list.length === 0){
+      host.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <p>${connected ? 'No one matches' : 'Waiting for connection to the sheet…'}</p>
+        </div>`;
+      return;
+    }
+
+    const isStaff = mode === 'staff';
+    const periodCols = isStaff
+      ? [{ label: 'This week', key: 'weeklyMinutes' }, { label: 'This month', key: 'monthlyMinutes' }]
+      : [{ label: 'This week', key: 'weeklyMinutes' }];
+
+    const periodHeadCells = periodCols.map(c => `<th class="num-col">${c.label}</th>`).join('');
+
+    const rows = list.map(p => {
+      const periodCells = periodCols.map(c =>
+        `<td data-label="${c.label}"><span class="total-pill">${minutesToHM(p[c.key])}</span></td>`
+      ).join('');
+      return `
+      <tr data-row="${p.row}">
+        <td data-label="Name">
+          <div class="name-cell">
+            <div class="avatar${p.checkedIn ? '' : ' out'}">${initials(p.name)}</div>
+            <div>
+              <div class="p-name">${p.name || 'Unnamed'}</div>
+              ${p.phone ? `<div class="p-phone">${p.phone}</div>` : ''}
+            </div>
+          </div>
+        </td>
+        <td data-label="Status"><span class="status-badge ${p.checkedIn ? 'in' : 'out'}">${p.checkedIn ? 'Checked in' : 'Not here'}</span></td>
+        <td data-label="Check in">${p.checkInTime ? p.checkInTime : '<span class="muted">—</span>'}</td>
+        <td data-label="Check out">${p.checkOutTime ? p.checkOutTime : '<span class="muted">—</span>'}</td>
+        ${periodCells}
+        <td data-label="Action" class="action-cell">
+          <button class="quick-toggle ${p.checkedIn ? 'in' : 'out'}" data-row="${p.row}">${p.checkedIn ? 'Check Out' : 'Check In'}</button>
+        </td>
+      </tr>
+    `;
+    }).join('');
+
+    host.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Status</th><th>Check in</th><th>Check out</th>${periodHeadCells}<th class="num-col">Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+
+    host.querySelectorAll('tbody tr').forEach(tr => {
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('.quick-toggle')) return;
+        const rowNum = Number(tr.dataset.row);
+        const person = list.find(p => p.row === rowNum);
+        if (person) openHistoryModal(person);
+      });
+    });
+
+    host.querySelectorAll('.quick-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rowNum = Number(btn.dataset.row);
+        const person = list.find(p => p.row === rowNum);
+        if (person) quickToggle(person, btn);
+      });
+    });
+  }
+
+  function formatTimeStr(d){
+    let h = d.getHours() % 12; if(h === 0) h = 12;
+    const m = String(d.getMinutes()).padStart(2,'0');
+    return `${h}:${m} ${d.getHours() < 12 ? 'AM' : 'PM'}`;
+  }
+  function formatDateStr(d){
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  async function quickToggle(person, btn){
+    if(btn.disabled) return;
+    btn.disabled = true;
+    const action = person.checkedIn ? 'checkout' : 'checkin';
+
+    // Apply instantly, client-side, so the button/row responds the
+    // moment it's clicked instead of waiting on the Apps Script
+    // round-trip — same reasoning as the check-in app's fix.
+    const prevState = { checkedIn: person.checkedIn, checkInTime: person.checkInTime, checkOutTime: person.checkOutTime };
+    const now = new Date();
+    const optimisticStamp = `${formatTimeStr(now)} - ${formatDateStr(now)}`;
+    if(action === 'checkin'){
+      person.checkedIn = true;
+      person.checkInTime = optimisticStamp;
+      person.checkOutTime = null;
+    } else {
+      person.checkedIn = false;
+      person.checkOutTime = optimisticStamp;
+    }
+    lastSnapshot[mode] = JSON.stringify(mode === 'staff' ? staff : students);
+    localEditVersion[mode]++;
+    render();
+
+    try{
+      const res = await fetch(WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ row: person.row, action: action, type: mode })
+      });
+      const result = await res.json();
+      if(result && result.success === false){
+        Object.assign(person, prevState);
+        lastSnapshot[mode] = JSON.stringify(mode === 'staff' ? staff : students);
+        localEditVersion[mode]++;
+        render();
+        alert('Could not reach the sheet — that check-in/out may not have saved.');
+        return;
+      }
+      // Reconcile with the server's precise timestamp and totals.
+      const preciseStamp = (result && result.time && result.date) ? `${result.time} - ${result.date}` : null;
+      if(action === 'checkin' && preciseStamp) person.checkInTime = preciseStamp;
+      if(action === 'checkout'){
+        if(preciseStamp) person.checkOutTime = preciseStamp;
+        if(result && typeof result.weeklyMinutes === 'number') person.weeklyMinutes = result.weeklyMinutes;
+        if(result && typeof result.monthlyMinutes === 'number') person.monthlyMinutes = result.monthlyMinutes;
+      }
+      lastSnapshot[mode] = JSON.stringify(mode === 'staff' ? staff : students);
+      localEditVersion[mode]++;
+      render();
+    }catch(err){
+      Object.assign(person, prevState);
+      lastSnapshot[mode] = JSON.stringify(mode === 'staff' ? staff : students);
+      localEditVersion[mode]++;
+      render();
+      alert('Network error — could not update.');
+    }
+  }
+
+  const DAY_LABELS = ['S','M','T','W','T','F','S'];
+  const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let historyPerson = null;
+  let historyMode = null;
+  let historyOffset = 0;
+
+  function openHistoryModal(person){
+    historyPerson = person;
+    historyMode = mode;
+    historyOffset = 0;
+
+    const backdrop = el('#modalBackdrop');
+    const card = el('#modalCard');
+    backdrop.classList.add('open');
+    card.innerHTML = `
+      <div class="modal-top">
+        <div>
+          <div class="modal-eyebrow">${historyMode === 'staff' ? 'Staff' : 'Student'} — Weekly hours</div>
+          <h2 class="modal-name">${person.name || 'Unnamed'}</h2>
+        </div>
+        <button class="modal-close" id="modalCloseBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-loading">Loading hours…</div>
+    `;
+    el('#modalCloseBtn').addEventListener('click', closeHistoryModal);
+    loadHistory(0);
+  }
+
+  function loadHistory(offset){
+    historyOffset = offset;
+    const person = historyPerson;
+    fetch(urlFor(historyMode) + '&history=1&name=' + encodeURIComponent(person.name) + '&weekOffset=' + offset, {cache:'no-store'})
+      .then(r => r.json())
+      .then(data => {
+        // Ignore stale responses if the user closed / reopened a different person meanwhile
+        if (historyPerson !== person) return;
+        renderHistoryModal(person, data, offset);
+      })
+      .catch(() => {
+        const loadingEl = el('#modalCard') && el('#modalCard').querySelector('.modal-loading');
+        if (loadingEl) loadingEl.textContent = 'Could not load history right now.';
+      });
+  }
+
+  function closeHistoryModal(){
+    el('#modalBackdrop').classList.remove('open');
+    historyPerson = null;
+  }
+  el('#modalBackdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'modalBackdrop') closeHistoryModal();
+  });
+
+  function parseISODate(s){
+    const parts = String(s || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function formatWeekRange(startStr, endStr){
+    const start = parseISODate(startStr);
+    const end = parseISODate(endStr);
+    if (!start || !end) return '';
+    const sameMonth = start.getMonth() === end.getMonth();
+    const startLabel = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endLabel = end.toLocaleDateString('en-US', sameMonth ? { day: 'numeric' } : { month: 'short', day: 'numeric' });
+    return `${startLabel}\u2013${endLabel}, ${end.getFullYear()}`;
+  }
+
+  function renderHistoryModal(person, data, offset){
+    const days = data.days || [0,0,0,0,0,0,0];
+    const total = data.totalMinutes || 0;
+    const max = Math.max(...days, 1);
+    const isCurrentWeek = offset === 0;
+    const todayIdx = isCurrentWeek ? new Date().getDay() : -1;
+
+    const weekStartDate = parseISODate(data.weekStart);
+
+    const bars = days.map((mins, i) => {
+      const heightPct = mins > 0 ? Math.max(6, Math.round((mins / max) * 100)) : 4;
+      const isToday = i === todayIdx;
+      const isZero = mins === 0;
+      let dateLabel = '';
+      if(weekStartDate){
+        const d = new Date(weekStartDate);
+        d.setDate(d.getDate() + i);
+        dateLabel = `${d.getMonth() + 1}/${d.getDate()}`;
+      }
+      return `
+        <div class="chart-bar-col">
+          <div class="chart-bar${isToday ? ' today' : ''}${isZero ? ' zero' : ''}" style="height:${heightPct}%"></div>
+          <div class="chart-day-label">${DAY_LABELS[i]}</div>
+          <div class="chart-date-label">${dateLabel}</div>
+        </div>
+      `;
+    }).join('');
+
+    const list = days.map((mins, i) => `
+      <div class="day-row${i === todayIdx ? ' today' : ''}${mins === 0 ? ' zero' : ''}">
+        <span class="dname">${DAY_NAMES[i]}</span>
+        <span class="dval">${minutesToHM(mins)}</span>
+      </div>
+    `).join('');
+
+    const rangeLabel = formatWeekRange(data.weekStart, data.weekEnd);
+
+    const card = el('#modalCard');
+    card.innerHTML = `
+      <div class="modal-top">
+        <div>
+          <div class="modal-eyebrow">${historyMode === 'staff' ? 'Staff' : 'Student'} — Weekly hours</div>
+          <h2 class="modal-name">${person.name || 'Unnamed'}</h2>
+        </div>
+        <button class="modal-close" id="modalCloseBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-total-label">Total ${isCurrentWeek ? 'this week' : 'that week'}</div>
+      <div class="modal-total-value">${minutesToHM(total)}</div>
+      <div class="chart-area">${bars}</div>
+      <div class="week-nav">
+        <button class="week-nav-btn" id="weekPrevBtn" aria-label="Previous week">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="week-nav-label">${rangeLabel}</span>
+        <button class="week-nav-btn" id="weekNextBtn" aria-label="Next week"${isCurrentWeek ? ' disabled' : ''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="day-list">${list}</div>
+      ${historyMode === 'student' ? `
+      <div class="assign-editor">
+        <p class="section-label">Homework &amp; Session</p>
+        <div class="assign-editor-grid">
+          <label class="assign-field">
+            <span>Math Pages</span>
+            <input type="text" id="editMath" value="${escapeAttr(person.math)}" placeholder="e.g. 61-65" inputmode="text">
+          </label>
+          <label class="assign-field">
+            <span>Reading Pages</span>
+            <input type="text" id="editReading" value="${escapeAttr(person.reading)}" placeholder="e.g. 48-52" inputmode="text">
+          </label>
+          <label class="assign-field full">
+            <span>Session length (minutes) — added to check-in time for expected pickup</span>
+            <input type="number" id="editSessionMinutes" min="5" step="5" value="${person.sessionMinutes || 60}">
+          </label>
+          <label class="assign-field full">
+            <span>This Week's Hours (manual correction)</span>
+            <div class="hm-input-row">
+              <input type="number" id="editWeekHours" min="0" value="${Math.floor((person.weeklyMinutes || 0) / 60)}">
+              <span class="hm-sep">h</span>
+              <input type="number" id="editWeekMinutes" min="0" max="59" value="${(person.weeklyMinutes || 0) % 60}">
+              <span class="hm-sep">m</span>
+            </div>
+          </label>
+        </div>
+        <div class="assign-save-row">
+          <button class="assign-save-btn" id="assignSaveBtn">Save</button>
+          <span class="assign-saved-note" id="assignSavedNote">Saved</span>
+        </div>
+      </div>
+      ` : ''}
+    `;
+    el('#modalCloseBtn').addEventListener('click', closeHistoryModal);
+    el('#weekPrevBtn').addEventListener('click', () => loadHistory(offset - 1));
+    if (!isCurrentWeek) {
+      el('#weekNextBtn').addEventListener('click', () => loadHistory(offset + 1));
+    }
+    if (historyMode === 'student') {
+      el('#assignSaveBtn').addEventListener('click', () => saveAssignments(person));
+    }
+  }
+
+  async function saveAssignments(person){
+    const btn = el('#assignSaveBtn');
+    const note = el('#assignSavedNote');
+    const math = el('#editMath').value;
+    const reading = el('#editReading').value;
+    const sessionMinutes = Number(el('#editSessionMinutes').value) || 60;
+    const weekHours = Math.max(0, Number(el('#editWeekHours').value) || 0);
+    const weekMins = Math.max(0, Math.min(59, Number(el('#editWeekMinutes').value) || 0));
+    const weeklyMinutes = (weekHours * 60) + weekMins;
+
+    btn.disabled = true;
+    note.classList.remove('show');
+    try{
+      const res = await fetch(WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ row: person.row, action: 'updateAssignments', type: 'student', math, reading, sessionMinutes, weeklyMinutes })
+      });
+      const result = await res.json();
+      if(!result || result.success === false){
+        alert('Could not save — check the connection and try again.');
+        return;
+      }
+      // Update the live record in place, and force a full re-render —
+      // this is the same Weekly Minutes value the main table, the
+      // check-in app, and the current-week Attendance tab all read, so
+      // this correction is now what every one of them shows.
+      person.math = math;
+      person.reading = reading;
+      person.sessionMinutes = sessionMinutes;
+      person.weeklyMinutes = (result && typeof result.weeklyMinutes === 'number') ? result.weeklyMinutes : weeklyMinutes;
+      lastSnapshot.student = JSON.stringify(students);
+      localEditVersion.student++;
+      render();
+      note.classList.add('show');
+    }catch(err){
+      alert('Network error — could not save.');
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  function render(){
+    renderStats();
+    renderTable();
+  }
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      if(view === 'attendance'){
+        loadLeaderboard();
+      } else {
+        render(); // instant, from whatever's cached
+        fetchType(mode); // then quietly bring it up to date if needed
+      }
+    });
+  });
+
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      view = btn.dataset.view;
+      el('#checkinView').style.display = view === 'checkin' ? '' : 'none';
+      el('#attendanceView').style.display = view === 'attendance' ? '' : 'none';
+      if(view === 'attendance') loadLeaderboard();
+    });
+  });
+
+  const TROPHY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a1 1 0 0 0-1 1 4 4 0 0 0 4 4M17 5h3a1 1 0 0 1 1 1 4 4 0 0 1-4 4"/></svg>';
+  const CALENDAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+
+  async function loadLeaderboard(){
+    const host = el('#attendanceHost');
+    host.innerHTML = `<div class="empty-state"><p>Loading attendance…</p></div>`;
+    try{
+      const res = await fetch(urlFor(mode) + '&leaderboard=1&weekOffset=' + attendanceOffset, {cache:'no-store'});
+      const data = await res.json();
+      if(data.error) throw new Error(data.error);
+      renderAttendance(data);
+    }catch(err){
+      host.innerHTML = `<div class="empty-state"><p>Could not load attendance right now.</p></div>`;
+    }
+  }
+
+  function renderAttendance(data){
+    const entries = data.entries || [];
+    const isCurrentWeek = attendanceOffset === 0;
+    const rangeLabel = formatWeekRange(data.weekStart, data.weekEnd);
+    const max = Math.max(...entries.map(e => e.minutes), 1);
+    const most = entries[0];
+    const least = entries[entries.length - 1];
+    const label = mode === 'staff' ? 'staff member' : 'student';
+
+    const spotlight = entries.length ? `
+      <div class="spotlight-row">
+        <div class="spotlight-card most">
+          <div class="spotlight-icon">${TROPHY_ICON}</div>
+          <div>
+            <div class="spotlight-label">Most present this week</div>
+            <div class="spotlight-name">${most.name || 'Unnamed'}</div>
+            <div class="spotlight-value">${minutesToHM(most.minutes)}</div>
+          </div>
+        </div>
+        <div class="spotlight-card least">
+          <div class="spotlight-icon">${CALENDAR_ICON}</div>
+          <div>
+            <div class="spotlight-label">Least present this week</div>
+            <div class="spotlight-name">${least.name || 'Unnamed'}</div>
+            <div class="spotlight-value">${minutesToHM(least.minutes)}</div>
+          </div>
+        </div>
+      </div>
+    ` : '';
+
+    const rows = entries.map((e, i) => {
+      const isZero = e.minutes === 0;
+      const pct = isZero ? 0 : Math.max(4, Math.round((e.minutes / max) * 100));
+      return `
+        <div class="leaderboard-row">
+          <div class="lb-rank${i === 0 && !isZero ? ' top' : ''}">${i + 1}</div>
+          <div class="lb-avatar${isZero ? ' zero' : ''}">${initials(e.name)}</div>
+          <div class="lb-name">${e.name || 'Unnamed'}</div>
+          <div class="lb-bar-track"><div class="lb-bar-fill${isZero ? ' zero' : ''}" style="width:${pct}%"></div></div>
+          <div class="lb-value${isZero ? ' zero' : ''}">${minutesToHM(e.minutes)}</div>
+        </div>
+      `;
+    }).join('');
+
+    el('#attendanceHost').innerHTML = `
+      ${spotlight}
+      <div class="week-nav">
+        <button class="week-nav-btn" id="attnPrevBtn" aria-label="Previous week">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="week-nav-label">${rangeLabel}</span>
+        <button class="week-nav-btn" id="attnNextBtn" aria-label="Next week"${isCurrentWeek ? ' disabled' : ''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="leaderboard-list">
+        ${entries.length ? rows : `<div class="empty-state"><p>No ${label} attendance recorded for this week yet.</p></div>`}
+      </div>
+    `;
+
+    el('#attnPrevBtn').addEventListener('click', () => { attendanceOffset -= 1; loadLeaderboard(); });
+    if(!isCurrentWeek){
+      el('#attnNextBtn').addEventListener('click', () => { attendanceOffset += 1; loadLeaderboard(); });
+    }
+  }
+
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      renderTable();
+    });
+  });
+
+  el('#searchInput').addEventListener('input', renderTable);
+
+  // ---- Admin panel: click the title 5x quickly to reveal it ----
+  (function setupSecretAdminPanel(){
+    const panel = el('#adminPanel');
+    const trigger = el('#secretTrigger');
+    const toggle = el('#autoCheckoutToggle');
+    const subtext = el('#autoCheckoutSubtext');
+    const runBtn = el('#runAutoCheckoutBtn');
+    let clicks = [];
+
+    trigger.addEventListener('click', () => {
+      const now = Date.now();
+      clicks = clicks.filter(t => now - t < 2500).concat(now);
+      if(clicks.length >= 5){
+        clicks = [];
+        panel.style.display = panel.style.display === 'none' ? '' : 'none';
+        if(panel.style.display !== 'none') refreshAdminStatus();
+      }
+    });
+
+    el('#adminPanelClose').addEventListener('click', () => { panel.style.display = 'none'; });
+
+    async function refreshAdminStatus(){
+      subtext.textContent = 'Checking status…';
+      try{
+        const res = await fetch(WEBAPP_URL + '?adminStatus=1', {cache:'no-store'});
+        const data = await res.json();
+        setToggleState(!!data.autoCheckoutEnabled);
+      }catch(err){
+        subtext.textContent = 'Could not check status — try again.';
+      }
+    }
+
+    function setToggleState(enabled){
+      toggle.classList.toggle('on', enabled);
+      subtext.textContent = enabled
+        ? 'On — everyone still checked in gets checked out around 8:00 PM daily.'
+        : 'Off — no automatic checkout will run.';
+    }
+
+    toggle.addEventListener('click', async () => {
+      const next = !toggle.classList.contains('on');
+      toggle.disabled = true;
+      try{
+        const res = await fetch(WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'setAutoCheckoutEnabled', enabled: next })
+        });
+        const result = await res.json();
+        setToggleState(!!(result && result.autoCheckoutEnabled));
+      }catch(err){
+        subtext.textContent = 'Could not save — try again.';
+      }finally{
+        toggle.disabled = false;
+      }
+    });
+
+    runBtn.addEventListener('click', async () => {
+      if(!confirm('This immediately checks out everyone currently checked in (Students and Staff). Continue?')) return;
+      runBtn.disabled = true;
+      const originalLabel = runBtn.textContent;
+      runBtn.textContent = 'Running…';
+      try{
+        const res = await fetch(WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'runAutoCheckoutNow' })
+        });
+        const result = await res.json();
+        if(result && result.success){
+          const c = result.checkedOut || {};
+          alert(`Done — checked out ${c.student || 0} student(s) and ${c.staff || 0} staff member(s).`);
+          fetchType(mode);
+          if(view === 'attendance') loadLeaderboard();
+        } else {
+          alert('Could not run auto-checkout — check the connection and try again.');
+        }
+      }catch(err){
+        alert('Network error — could not run auto-checkout.');
+      }finally{
+        runBtn.disabled = false;
+        runBtn.textContent = originalLabel;
+      }
+    });
+  })();
+
+  // Load both types once up front so switching tabs is instant even
+  // before the first background refresh lands, then only keep polling
+  // whichever tab is actually visible.
+  fetchType('student');
+  fetchType('staff');
+  startPolling();
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeHistoryModal();
+  });
+</script>
+</body>
+</html>
